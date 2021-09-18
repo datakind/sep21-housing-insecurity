@@ -185,7 +185,7 @@ house_loss_map <-
         "Mortgage Foreclosures Per Year",
         "Tax Lien Foreclosures Per Year",
         "Median Household Income",
-        # Crucial for helping to determine if people are being targeted/
+        # Crucial for helping to determine how people are being targeted/
         # disproportianetly affected
         "Percent People of Color",
         "Largest Racial Groups"
@@ -214,7 +214,7 @@ tmap_save(house_loss_map, filename = "outputs/wbannick/miami-dade_housing_loss_m
 # Does it change the picture?
 ## 2) I think it would be interesting to see what adding a layer with colors for
 # what the plurality racial group is for tracts could be illuminating in
-# determining if certain groups are being discriminated against. Could also
+# determining how certain groups are being discriminated against. Could also
 # categorize tracts as something like Majority Black, Majority Hisp, Majority White,
 # Mixed (if no majority or perhaps no 2/3 majority).
 ## 3) Experiment with adding a layer for income brackets

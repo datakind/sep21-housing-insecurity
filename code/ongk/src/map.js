@@ -72,27 +72,44 @@ let hillsboroughGeojson = L.geoJSON(hillsboroughTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
+    return {
+      color: _.isNaN(metricValue) ? 'none' : "#ffffff",
+      fillColor: _.isNaN(metricValue) ? 'none' : colorScale(metricValue),
+      fillOpacity: 0.7,
+      weight: 1,
+    };
   },
 }).addTo(myMap);
 let miamiDadeGeojson = L.geoJSON(miamiDadeTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
+    return {
+      color: _.isNaN(metricValue) ? 'none' : "#ffffff",
+      fillColor: _.isNaN(metricValue) ? 'none' : colorScale(metricValue),
+      fillOpacity: 0.7,
+      weight: 1,
+    };
   },
 }).addTo(myMap);
 let orangeGeojson = L.geoJSON(orangeTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
+    return {
+      color: _.isNaN(metricValue) ? 'none' : "#ffffff",
+      fillColor: _.isNaN(metricValue) ? 'none' : colorScale(metricValue),
+      fillOpacity: 0.7,
+      weight: 1,
+    };
   },
 }).addTo(myMap);
 
 document
   .getElementById("legend")
-  .appendChild(Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" }));
+  .appendChild(
+    Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" })
+  );
 
 function handleSelectChange(event) {
   metricKey = event.target.value;
@@ -104,7 +121,9 @@ function handleSelectChange(event) {
   document.getElementById("legend").firstChild.remove();
   document
     .getElementById("legend")
-    .appendChild(Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" }));
+    .appendChild(
+      Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" })
+    );
   hillsboroughGeojson.resetStyle();
   miamiDadeGeojson.resetStyle();
   orangeGeojson.resetStyle();

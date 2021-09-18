@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# DS Store
+*/DS_Store
+
+# Data folder for netinupur
+code/netinupur/data/

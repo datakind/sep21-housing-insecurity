@@ -133,3 +133,7 @@ dmypy.json
 
 # Data folder for netinupur
 code/netinupur/data/
+
+# R project info
+.Rproj.user/
+sep21-housing-insecurity.Rproj

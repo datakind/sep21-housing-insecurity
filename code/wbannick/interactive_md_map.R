@@ -89,7 +89,12 @@ md_mapping_sums <- md_sums %>%
     `Tax Lien Foreclosure Rate` = `avg-lien-foreclosure-rate`,
     # rounding and adding percent sign so is consistent with other race data 
     # which is formatted in next section
-    `Percent People of Color` = round(`pct-poc`) %>% paste0("%")
+    `Percent People of Color` = round(`pct-poc`) %>% paste0("%"),
+    # Income/Rent
+    # as char because weird tmap tendency to display as 0 mln
+    # probably should add commas for viewers
+    `Median Household Income` = `median-household-income` %>% as.character(),
+    `Median Gross Rent` = `median-gross-rent`
   ) %>%
   mutate(
     across(is.numeric, round, 2)
@@ -173,6 +178,7 @@ house_loss_map <-
         "Evictions Per Year",
         "Mortgage Foreclosures Per Year",
         "Tax Lien Foreclosures Per Year",
+        "Median Household Income",
         "Percent People of Color",
         "Largest Racial Groups"
       ),

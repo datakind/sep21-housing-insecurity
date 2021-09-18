@@ -34,9 +34,9 @@ md_sums <- read_csv(
   paste0(data_dir_path, "miami_dade_fl_processed_2017_to_2019_20210916.csv"))
 
 # -----------------------------------------------
-# III. Appending Summary Statistics to Map
+# III. Fixing Summary Stats
 # -----------------------------------------------
-# So we want: evictions/foreclosures/overall housing loss
+
 
 md_sums <- md_sums %>%
   mutate(
@@ -55,14 +55,51 @@ md_sums <- md_sums %>%
       ),
     # this was also wrong but in a different way
     `pct-non-white` = (100 - `pct-white`),
-    `pct-renters` = calculate_pct(`total-renter-occupied-households`, `total-households`),
     # let's round all percents to be more readable. I think 2 decimals should be good,
     # BUT this can be altered
     across(matches("pct-"), round, 2),
-    
+    # decided to this for avg too
+    across(matches("avg-"), round, 2),
   ) %>%
   # a quick rename to shift perspectives :)
   rename("pct-poc" = "pct-non-white")
 
+# -----------------------------------------------
+# IV. Appending Summary Statistics to Map
+# -----------------------------------------------
+# This excerpt has two purposes: 
+## A) Sepcifying which data we want to actually showcase in the map
+## B) Renaming variables to readable labels to be displayed in the map
+#### these new names will be ugly for programmers but pretty for visualizations
 
+# Per the task description we want to highlight:
+## evictions/foreclosures/overall housing loss
+md_mapping_sums <- md_sums %>%
+  transmute(
+    `census_tract_GEOID` = as.character(`census_tract_GEOID`), # for join
+    state, county, county_GEOID, # always good to keep in case w bind rows
+    `Number of Households` = `total-households`,
+    # think this will be the first layer at least
+    `Housing Loss Index` = `housing-loss-index`,
+    # '' per year (2017-2019)
+    `Evictions Per Year` = `avg-evictions`,
+    `Mortgage Foreclosures Per Year` = `avg-foreclosure-sales`,
+    `Tax Lien Foreclosures Per Year` = `avg-lien-foreclosures`,
+    # rates
+    `Eviction Rate` = `avg-eviction-rate`,
+    `Mortgage Foreclosure Rate` = `avg-foreclosure-rate`,
+    `Tax Lien Foreclosure Rate` = `avg-lien-foreclosure-rate`,
+    # race
+  )
 
+# the actual join
+md_sf <- left_join(md_sf, md_mapping_sums)
+
+# let's make sure we're good..
+table(is.na(md_sf$`Number of Households`))
+table(is.na(md_sf$`Housing Loss Index`))
+table(is.na(md_mapping_sums$`Housing Loss Index`))
+
+# -----------------------------------------------
+# V. Producing the Actual Map
+# -----------------------------------------------

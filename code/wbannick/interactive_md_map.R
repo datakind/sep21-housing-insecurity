@@ -73,6 +73,8 @@ md_sums <- md_sums %>%
 md_mapping_sums <- md_sums %>%
   transmute(
     `census_tract_GEOID`, # for join
+    # I think this makes things slightly more readable in the map
+    `Census Tract` = paste0("Census Tract ", `census_tract_GEOID`),
     state, county, county_GEOID, # always good to keep in case w bind rows
     `Number of Households` = `total-households`,
     # think this will be the first layer at least
@@ -85,8 +87,12 @@ md_mapping_sums <- md_sums %>%
     `Eviction Rate` = `avg-eviction-rate`,
     `Mortgage Foreclosure Rate` = `avg-foreclosure-rate`,
     `Tax Lien Foreclosure Rate` = `avg-lien-foreclosure-rate`,
-    # race
-    `Percent People of Color` = `pct-poc`
+    # rounding and adding percent sign so is consistent with other race data 
+    # which is formatted in next section
+    `Percent People of Color` = round(`pct-poc`) %>% paste0("%")
+  ) %>%
+  mutate(
+    across(is.numeric, round, 2)
   )
 
 # the actual join
@@ -133,8 +139,7 @@ race_by_tract <- select(md_sums, all_of(
     names_from = "rank",
     values_from = c("race", "pct")) %>%
   mutate(
-    # perhaps label like "Two Largest Racial Groups" instead
-    `Racial Composition` = ifelse(is.na(race_3),
+    `Largest Racial Groups` = ifelse(is.na(race_3),
       paste0(race_1, " (", pct_1, "%), ", race_2, " (", pct_2, "%)"),
       # one has a tie and so a thrid race to display
       paste0(race_1, " (", pct_1, "%), ", race_2, " (", pct_2, "%)", race_3,
@@ -144,11 +149,11 @@ race_by_tract <- select(md_sums, all_of(
 # joining on race comp
 md_sf <- left_join(
   md_sf,
-  select(race_by_tract, `census_tract_GEOID`, `Racial Composition`)
+  select(race_by_tract, `census_tract_GEOID`, `Largest Racial Groups`)
   )
 
 # -----------------------------------------------
-# V. Producing the Actual Map
+# VI. Producing the Interactive Map
 # -----------------------------------------------
 # just to look for breaks...
 hist(md_sf$`Housing Loss Index`)
@@ -159,17 +164,17 @@ house_loss_map <-
   tmap::tm_shape(md_sf, name = "Housing Loss Miami-Dade County (2017-2019)") + 
   tm_polygons(
     "Housing Loss Index",
-    id = "census_tract_GEOID",
+    id = "Census Tract",
     palette = "-magma",
     popup.vars = 
       c(
         "Number of Households",
         "Housing Loss Index",
-        "Racial Composition"
-        "Percent People of Color"
         "Evictions Per Year",
         "Mortgage Foreclosures Per Year",
-        "Tax Lien Foreclosures Per Year"
+        "Tax Lien Foreclosures Per Year",
+        "Percent People of Color",
+        "Largest Racial Groups"
       ),
     # based both on hist and understanding of the var
     breaks = c(0, 0.5, 1, 1.5, 2, 4),

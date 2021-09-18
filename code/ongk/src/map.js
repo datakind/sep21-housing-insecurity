@@ -66,6 +66,8 @@ let geojson = L.geoJSON(tracts, {
   },
 }).addTo(myMap);
 
+document.getElementById("legend").appendChild(Legend(colorScale, { title: metricKey }));
+
 function handleSelectChange(event) {
   metricKey = event.target.value;
   colorScale = d3.scaleQuantize(
@@ -73,5 +75,7 @@ function handleSelectChange(event) {
     d3.schemeRdBu[10]
   );
 
+  document.getElementById("legend").firstChild.remove();
+  document.getElementById("legend").appendChild(Legend(colorScale, { title: metricKey }));
   geojson.resetStyle();
 }

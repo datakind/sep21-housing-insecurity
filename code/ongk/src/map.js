@@ -72,21 +72,21 @@ let hillsboroughGeojson = L.geoJSON(hillsboroughTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: colorScale(metricValue) };
+    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
   },
 }).addTo(myMap);
 let miamiDadeGeojson = L.geoJSON(miamiDadeTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: colorScale(metricValue) };
+    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
   },
 }).addTo(myMap);
 let orangeGeojson = L.geoJSON(orangeTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
-    return { color: colorScale(metricValue) };
+    return { color: "#ffffff", fillColor: colorScale(metricValue), fillOpacity: 0.7, weight: 1 };
   },
 }).addTo(myMap);
 

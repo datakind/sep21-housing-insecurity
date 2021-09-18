@@ -1,15 +1,26 @@
-const housingLossData = Papa.parse(dataLossMiamiData, { header: true });
-const housingLossDataCols = housingLossData.meta.fields;
+// Retrieve all datasets
+const hillsboroughDataset = Papa.parse(hillsboroughData, { header: true });
+const miamiDadeDataset = Papa.parse(miamiDadeData, { header: true });
+const orangeDataset = Papa.parse(orangeData, { header: true });
+const housingLossData = _.concat(
+  hillsboroughDataset.data,
+  miamiDadeDataset.data,
+  orangeDataset.data
+);
+
+// Get columns
+const housingLossDataCols = hillsboroughDataset.meta.fields;
 const numericalCols = _.without(
   housingLossDataCols,
   "census_tract_GEOID",
   "state",
   "county",
-  "county_GEOID"
+  "county_GEOID",
+  "pct-below-poverty-level"
 );
-let metricKey = "total-evictions";
 
 // Add to select
+let metricKey = "total-evictions";
 const selectElt = document.getElementById("metric-select");
 selectElt.addEventListener("change", handleSelectChange);
 
@@ -17,7 +28,7 @@ selectElt.addEventListener("change", handleSelectChange);
 let numericalSummary = {};
 for (let colIdx = 0; colIdx < numericalCols.length; colIdx++) {
   const colKey = numericalCols[colIdx];
-  const colValues = _.map(housingLossData.data, (o) => parseFloat(o[colKey]));
+  const colValues = _.map(housingLossData, (o) => parseFloat(o[colKey]));
   _.remove(colValues, (v) => _.isNaN(v));
 
   numericalSummary[colKey] = {
@@ -37,16 +48,15 @@ for (let colIdx = 0; colIdx < numericalCols.length; colIdx++) {
 }
 
 // Clean tract data and convert to numerical values
-const tractData = _.keyBy(housingLossData.data, "census_tract_GEOID");
-_.map(tractData, (tData, geoID) => {
+const tractData = _.keyBy(housingLossData, "census_tract_GEOID");
+_.each(tractData, (tData) => {
   _.each(numericalCols, (header) => {
     tData[header] = parseFloat(tData[header]);
   });
-  return tData;
 });
 delete tractData[""];
 
-let myMap = L.map("mapid").setView([25.60169, -80.461346], 10);
+let myMap = L.map("mapid").setView([27.431328998518634, -81.36195249010888], 7);
 
 L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
   maxZoom: 18,
@@ -58,7 +68,21 @@ let colorScale = d3.scaleQuantize(
   [numericalSummary[metricKey].min, numericalSummary[metricKey].max],
   d3.schemeRdBu[10]
 );
-let geojson = L.geoJSON(tracts, {
+let hillsboroughGeojson = L.geoJSON(hillsboroughTracts, {
+  style: function (feature) {
+    const geoID = feature.properties.census_tract_GEOID;
+    const metricValue = parseFloat(tractData[geoID][metricKey]);
+    return { color: colorScale(metricValue) };
+  },
+}).addTo(myMap);
+let miamiDadeGeojson = L.geoJSON(miamiDadeTracts, {
+  style: function (feature) {
+    const geoID = feature.properties.census_tract_GEOID;
+    const metricValue = parseFloat(tractData[geoID][metricKey]);
+    return { color: colorScale(metricValue) };
+  },
+}).addTo(myMap);
+let orangeGeojson = L.geoJSON(orangeTracts, {
   style: function (feature) {
     const geoID = feature.properties.census_tract_GEOID;
     const metricValue = parseFloat(tractData[geoID][metricKey]);
@@ -66,7 +90,9 @@ let geojson = L.geoJSON(tracts, {
   },
 }).addTo(myMap);
 
-document.getElementById("legend").appendChild(Legend(colorScale, { title: metricKey }));
+document
+  .getElementById("legend")
+  .appendChild(Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" }));
 
 function handleSelectChange(event) {
   metricKey = event.target.value;
@@ -76,6 +102,10 @@ function handleSelectChange(event) {
   );
 
   document.getElementById("legend").firstChild.remove();
-  document.getElementById("legend").appendChild(Legend(colorScale, { title: metricKey }));
-  geojson.resetStyle();
+  document
+    .getElementById("legend")
+    .appendChild(Legend(colorScale, { title: metricKey, width: 800, tickFormat: "0.2f" }));
+  hillsboroughGeojson.resetStyle();
+  miamiDadeGeojson.resetStyle();
+  orangeGeojson.resetStyle();
 }

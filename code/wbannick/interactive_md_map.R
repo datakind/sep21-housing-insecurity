@@ -76,7 +76,7 @@ md_sums <- md_sums %>%
 ## evictions/foreclosures/overall housing loss
 md_mapping_sums <- md_sums %>%
   transmute(
-    `census_tract_GEOID` = as.character(`census_tract_GEOID`), # for join
+    `Census Tract` = as.character(`census_tract_GEOID`), # for join
     state, county, county_GEOID, # always good to keep in case w bind rows
     `Number of Households` = `total-households`,
     # think this will be the first layer at least
@@ -93,7 +93,9 @@ md_mapping_sums <- md_sums %>%
   )
 
 # the actual join
-md_sf <- left_join(md_sf, md_mapping_sums)
+md_sf <- left_join(md_sf, md_mapping_sums) %>%
+  # dropping those with zero households
+  filter(`Number of Households` != 0)
 
 # let's make sure we're good..
 table(is.na(md_sf$`Number of Households`))
@@ -103,3 +105,23 @@ table(is.na(md_mapping_sums$`Housing Loss Index`))
 # -----------------------------------------------
 # V. Producing the Actual Map
 # -----------------------------------------------
+
+
+house_loss_map <- 
+  tmap::tm_shape(md_sf, name = "Housing Loss Miami-Dade County (2017-2019)") + 
+  tm_polygons(
+    "Housing Loss Index",
+    id = "Census Tract",
+    palette = "-magma",
+    popup.vars = 
+      c(
+        "Housing Loss Index",
+        "Number of Households",
+        "Evictions Per Year",
+        "Mortgage Foreclosure Rate",
+        "Tax Lien Foreclosure Rate"
+      ),
+    #breaks = c()
+  )
+
+tmap_save(house_loss_map, filename = "outputs/wbannick/miami-dade_housing_loss_map.html")

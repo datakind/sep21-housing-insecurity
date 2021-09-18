@@ -37,7 +37,6 @@ md_sums <- read_csv(
 # III. Fixing Summary Stats
 # -----------------------------------------------
 
-
 md_sums <- md_sums %>%
   mutate(
     # First, it seems the pct race variables are raw numbers not percentages
@@ -55,11 +54,7 @@ md_sums <- md_sums %>%
       ),
     # this was also wrong but in a different way
     `pct-non-white` = (100 - `pct-white`),
-    # let's round all percents to be more readable. I think 2 decimals should be good,
-    # BUT this can be altered
-    across(matches("pct-"), round, 2),
-    # decided to this for avg too
-    across(matches("avg-"), round, 2),
+    `census_tract_GEOID` = as.character(`census_tract_GEOID`), # for join
   ) %>%
   # a quick rename to shift perspectives :)
   rename("pct-poc" = "pct-non-white")
@@ -72,11 +67,12 @@ md_sums <- md_sums %>%
 ## B) Renaming variables to readable labels to be displayed in the map
 #### these new names will be ugly for programmers but pretty for visualizations
 
+
 # Per the task description we want to highlight:
 ## evictions/foreclosures/overall housing loss
 md_mapping_sums <- md_sums %>%
   transmute(
-    `census_tract_GEOID` = as.character(`census_tract_GEOID`), # for join
+    `census_tract_GEOID`, # for join
     state, county, county_GEOID, # always good to keep in case w bind rows
     `Number of Households` = `total-households`,
     # think this will be the first layer at least
@@ -90,6 +86,7 @@ md_mapping_sums <- md_sums %>%
     `Mortgage Foreclosure Rate` = `avg-foreclosure-rate`,
     `Tax Lien Foreclosure Rate` = `avg-lien-foreclosure-rate`,
     # race
+    `Percent People of Color` = `pct-poc`
   )
 
 # the actual join
@@ -103,12 +100,61 @@ table(is.na(md_sf$`Housing Loss Index`))
 table(is.na(md_mapping_sums$`Housing Loss Index`))
 
 # -----------------------------------------------
+# V. Appending Racial Breakdowns of Tracts
+# -----------------------------------------------
+# basically for better label display I am grabbing the percentages of two highest racial groups
+race_by_tract <- select(md_sums, all_of(
+  #only race columns
+  c("census_tract_GEOID","pct-white", "pct-af-am", "pct-hispanic", "pct-am-indian",
+    "pct-asian", "pct-nh-pi", "pct-multiple", "pct-other"))) %>%
+  # to longer so can group and find maxes
+  pivot_longer(cols = -`census_tract_GEOID`, names_to = "race", values_to = "pct") %>%
+  # dropping zeros (no need to display)
+  filter(pct != 0) %>%
+  # grabbing top 2 by each race
+  arrange(census_tract_GEOID, desc(pct)) %>%
+  group_by(census_tract_GEOID) %>%
+  top_n(2) %>%
+  mutate(
+    rank = row_number(),
+    # better labels
+    race = recode(race,
+      "pct-af-am" = "Black",
+      "pct-am-indian" = "Native American",
+      "pct-hispanic" = "Hispanic",
+      "pct-multiple" = "Multiple",
+      "pct-white" = "White"
+    ),
+    pct = round(pct)
+  ) %>%
+  # back to wide so we can join
+  pivot_wider(
+    id_cols = "census_tract_GEOID",
+    names_from = "rank",
+    values_from = c("race", "pct")) %>%
+  mutate(
+    # perhaps label like "Two Largest Racial Groups" instead
+    `Racial Composition` = ifelse(is.na(race_3),
+      paste0(race_1, " (", pct_1, "%), ", race_2, " (", pct_2, "%)"),
+      # one has a tie and so a thrid race to display
+      paste0(race_1, " (", pct_1, "%), ", race_2, " (", pct_2, "%)", race_3,
+             " (", pct_3, "%)")
+    )
+  )
+# joining on race comp
+md_sf <- left_join(
+  md_sf,
+  select(race_by_tract, `census_tract_GEOID`, `Racial Composition`)
+  )
+
+# -----------------------------------------------
 # V. Producing the Actual Map
 # -----------------------------------------------
 # just to look for breaks...
 hist(md_sf$`Housing Loss Index`)
 hist(md_sf$`Housing Loss Index`, breaks = c(0, 0.5, 1, 1.5, 2, 4))
 
+# creating the tmap object (will be outputed as interactive html Leaflet)
 house_loss_map <- 
   tmap::tm_shape(md_sf, name = "Housing Loss Miami-Dade County (2017-2019)") + 
   tm_polygons(
@@ -119,6 +165,8 @@ house_loss_map <-
       c(
         "Number of Households",
         "Housing Loss Index",
+        "Racial Composition"
+        "Percent People of Color"
         "Evictions Per Year",
         "Mortgage Foreclosures Per Year",
         "Tax Lien Foreclosures Per Year"

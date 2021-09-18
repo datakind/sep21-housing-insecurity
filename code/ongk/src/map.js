@@ -7,6 +7,7 @@ const numericalCols = _.without(
   "county",
   "county_GEOID"
 );
+let metricKey = "total-evictions";
 
 // Add to select
 const selectElt = document.getElementById("metric-select");
@@ -29,6 +30,9 @@ for (let colIdx = 0; colIdx < numericalCols.length; colIdx++) {
   const optionElt = document.createElement("option");
   optionElt.value = colKey;
   optionElt.innerHTML = colKey;
+  if (colKey === metricKey) {
+    optionElt.setAttribute("selected", "");
+  }
   selectElt.appendChild(optionElt);
 }
 
@@ -42,15 +46,14 @@ _.map(tractData, (tData, geoID) => {
 });
 delete tractData[""];
 
-
 let myMap = L.map("mapid").setView([25.60169, -80.461346], 10);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18,
-        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>'
-      }).addTo(myMap);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 18,
+  attribution:
+    '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+}).addTo(myMap);
 
-let metricKey = "total-evictions";
 let colorScale = d3.scaleQuantize(
   [numericalSummary[metricKey].min, numericalSummary[metricKey].max],
   d3.schemeRdBu[10]
@@ -69,6 +72,6 @@ function handleSelectChange(event) {
     [numericalSummary[metricKey].min, numericalSummary[metricKey].max],
     d3.schemeRdBu[10]
   );
-  
+
   geojson.resetStyle();
 }

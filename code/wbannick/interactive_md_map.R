@@ -76,7 +76,7 @@ md_sums <- md_sums %>%
 ## evictions/foreclosures/overall housing loss
 md_mapping_sums <- md_sums %>%
   transmute(
-    `Census Tract` = as.character(`census_tract_GEOID`), # for join
+    `census_tract_GEOID` = as.character(`census_tract_GEOID`), # for join
     state, county, county_GEOID, # always good to keep in case w bind rows
     `Number of Households` = `total-households`,
     # think this will be the first layer at least
@@ -105,23 +105,34 @@ table(is.na(md_mapping_sums$`Housing Loss Index`))
 # -----------------------------------------------
 # V. Producing the Actual Map
 # -----------------------------------------------
-
+# just to look for breaks...
+hist(md_sf$`Housing Loss Index`)
+hist(md_sf$`Housing Loss Index`, breaks = c(0, 0.5, 1, 1.5, 2, 4))
 
 house_loss_map <- 
   tmap::tm_shape(md_sf, name = "Housing Loss Miami-Dade County (2017-2019)") + 
   tm_polygons(
     "Housing Loss Index",
-    id = "Census Tract",
+    id = "census_tract_GEOID",
     palette = "-magma",
     popup.vars = 
       c(
-        "Housing Loss Index",
         "Number of Households",
+        "Housing Loss Index",
         "Evictions Per Year",
-        "Mortgage Foreclosure Rate",
-        "Tax Lien Foreclosure Rate"
+        "Mortgage Foreclosures Per Year",
+        "Tax Lien Foreclosures Per Year"
       ),
-    #breaks = c()
-  )
+    # based both on hist and understanding of the var
+    breaks = c(0, 0.5, 1, 1.5, 2, 4),
+    # so we can see streets/neighborhood identifiers. 
+    # (census tracts aren't easily recongnized by most) 
+    alpha = 0.67,
+  ) +
+  # zooms that make sense in this context
+  tm_view(set.zoom.limits = c(9,15)) +
+  # first with streets, but also one thats just a canvas
+  tmap_options(basemaps = c("OpenStreetMap", "Esri.WorldGrayCanvas")) 
 
 tmap_save(house_loss_map, filename = "outputs/wbannick/miami-dade_housing_loss_map.html")
+

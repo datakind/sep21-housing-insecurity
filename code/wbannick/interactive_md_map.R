@@ -1,4 +1,4 @@
-# TASK 1.2
+# Interactive Maps - Task 2
 # Task 2: Using the programming language, library, or software of your choice,
 # create interactive maps of housing loss for the census tracts of Miami-Dade County,
 # FL. Can you display evictions/foreclosures/overall housing loss aside other
@@ -65,17 +65,18 @@ md_sums <- md_sums %>%
 # This excerpt has two purposes: 
 ## A) Sepcifying which data we want to actually showcase in the map
 ## B) Renaming variables to readable labels to be displayed in the map
-#### these new names will be ugly for programmers but pretty for visualizations
+#### these new names will be ugly for programmers but prettier for visualizations
 
 
 # Per the task description we want to highlight:
 ## evictions/foreclosures/overall housing loss
 md_mapping_sums <- md_sums %>%
   transmute(
-    `census_tract_GEOID`, # for join
+    `census_tract_GEOID`, # for the join
     # I think this makes things slightly more readable in the map
     `Census Tract` = paste0("Census Tract ", `census_tract_GEOID`),
-    state, county, county_GEOID, # always good to keep in case w bind rows
+    #always good to keep in case we combine with other counties
+    state, county, county_GEOID,
     `Number of Households` = `total-households`,
     # think this will be the first layer at least
     `Housing Loss Index` = `housing-loss-index`,
@@ -113,22 +114,23 @@ table(is.na(md_mapping_sums$`Housing Loss Index`))
 # -----------------------------------------------
 # V. Appending Racial Breakdowns of Tracts
 # -----------------------------------------------
-# basically for better label display I am grabbing the percentages of two highest racial groups
+# for better label display, I am grabbing the percentages of two highest racial groups
 race_by_tract <- select(md_sums, all_of(
-  #only race columns
+  #only want race columns for this
   c("census_tract_GEOID","pct-white", "pct-af-am", "pct-hispanic", "pct-am-indian",
     "pct-asian", "pct-nh-pi", "pct-multiple", "pct-other"))) %>%
-  # to longer so can group and find maxes
+  # pivot to long df so we can group by tract and find largest racial groups more easily
   pivot_longer(cols = -`census_tract_GEOID`, names_to = "race", values_to = "pct") %>%
   # dropping zeros (no need to display)
   filter(pct != 0) %>%
-  # grabbing top 2 by each race
+  # grabbing top 2 by each tract
   arrange(census_tract_GEOID, desc(pct)) %>%
   group_by(census_tract_GEOID) %>%
+  # for ties, this will grab 3
   top_n(2) %>%
   mutate(
     rank = row_number(),
-    # better labels
+    # more readable labels
     race = recode(race,
       "pct-af-am" = "Black",
       "pct-am-indian" = "Native American",
@@ -136,14 +138,16 @@ race_by_tract <- select(md_sums, all_of(
       "pct-multiple" = "Multiple",
       "pct-white" = "White"
     ),
+    # too many decimal places would make pop up crowded imo
     pct = round(pct)
   ) %>%
-  # back to wide so we can join
+  # back to wide so we can join 1 to 1
   pivot_wider(
     id_cols = "census_tract_GEOID",
     names_from = "rank",
     values_from = c("race", "pct")) %>%
   mutate(
+    # this creates a label that will look good in the pop up (I hope)
     `Largest Racial Groups` = ifelse(is.na(race_3),
       paste0(race_1, " (", pct_1, "%), ", race_2, " (", pct_2, "%)"),
       # one has a tie and so a thrid race to display
@@ -172,13 +176,17 @@ house_loss_map <-
     id = "Census Tract",
     palette = "-magma",
     popup.vars = 
+      # not 100% sure on best order haha
       c(
         "Number of Households",
         "Housing Loss Index",
         "Evictions Per Year",
+        # maybe remove these two so a little cleaner
         "Mortgage Foreclosures Per Year",
         "Tax Lien Foreclosures Per Year",
         "Median Household Income",
+        # Crucial for helping to determine if people are being targeted/
+        # disproportianetly affected
         "Percent People of Color",
         "Largest Racial Groups"
       ),
@@ -189,9 +197,25 @@ house_loss_map <-
     alpha = 0.67,
   ) +
   # zooms that make sense in this context
-  tm_view(set.zoom.limits = c(9,15)) +
+  tm_view(
+    set.zoom.limits = c(9,15),
+    # I actually think 9.5 is a perfect starting zoom but could get it start there
+    # It would start at 10 then you'd have to zoom out one. Probs could be fixed.
+    #set.zoom.limits = c(9,15)
+    #set.view = 9.5
+    ) +
   # first with streets, but also one thats just a canvas
   tmap_options(basemaps = c("OpenStreetMap", "Esri.WorldGrayCanvas")) 
 
 tmap_save(house_loss_map, filename = "outputs/wbannick/miami-dade_housing_loss_map.html")
+
+# TODOS: 
+## 1) Exeperiment with adding a layer for total evictions. Better coverage. 
+# Does it change the picture?
+## 2) I think it would be interesting to see what adding a layer with colors for
+# what the plurality racial group is for tracts could be illuminating in
+# determining if certain groups are being discriminated against. Could also
+# categorize tracts as something like Majority Black, Majority Hisp, Majority White,
+# Mixed (if no majority or perhaps no 2/3 majority).
+## 3) Experiment with adding a layer for income brackets
 

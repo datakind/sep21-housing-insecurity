@@ -127,3 +127,13 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# DS Store
+*/DS_Store
+
+# Data folder for netinupur
+code/netinupur/data/
+
+# R project info
+.Rproj.user/
+sep21-housing-insecurity.Rproj
